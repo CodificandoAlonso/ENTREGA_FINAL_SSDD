@@ -38,18 +38,13 @@ int receive_characters(int socket, char *message) {
         // Leemos del socket y almacenamos en el buffer
 
         r = read(socket, buffer, 1);
-        printf("caracter leido =%c", buffer[i]);
-        printf("r =%d\n", r);
-        printf("i =%d\n",i);
         if (r <= 0) {
             perror("Error reading from socket");
             return -1;
         }
-
-        if (buffer[i] == '\0') {
+        if (*buffer == '\0') {
             return 0;
         }
-
         buffer += r; // Movemos el puntero del buffer
         i++;
     }
@@ -105,9 +100,111 @@ int receive_message(int socket, request *message) {
     /* Primero se recibe una cadena con la operación a realizar. Esta puede ser:
      * Register Unregister Connect Disconnect Publish Delete List_Users List_Content
      */
-    char operation[256];
-    receive_characters(socket, operation);
-    printf("%s\n", operation);
+    char receive_char[256];
+    int op = receive_characters(socket, receive_char);
+    if (op == -1) {
+        return -1;
+    }
+
+    if (strcmp(receive_char, "REGISTER") == 0) {
+        message->operation = 0;  //REGISTER SERÁ 0
+        char username[256];
+        op = receive_characters(socket, username);
+        if (op == -1) {
+            return -1;
+        }
+        memcpy(message->username, username, strlen(username));
+        printf("OPERATION %s FROM %s\n", receive_char, username);
+        return 0;
+    }
+    if (strcmp(receive_char, "UNREGISTER") == 0) {
+        message->operation = 1;  //UNREGISTER SERÁ 1
+        char username[256];
+        op = receive_characters(socket, username);
+        if (op == -1) {
+            return -1;
+        }
+        memcpy(message->username, username, strlen(username));
+        printf("OPERATION %s FROM %s\n", receive_char, username);
+        return 0;
+    }
+    if (strcmp(receive_char, "CONNECT") == 0) {
+        message->operation = 2;  //CONNECT SERÁ 2
+        char username[256];
+        op = receive_characters(socket, username);
+        if (op == -1) {
+            return -1;
+        }
+        memcpy(message->username, username, strlen(username));
+        printf("OPERATION %s FROM %s\n", receive_char, username);
+        op = receive_characters(socket, receive_char);
+        if (op == -1) {
+            return -1;
+        }
+        printf("el puerto es %s\n", receive_char);
+        __uint32_t port = ntohl(atoi(receive_char));
+        message->port = port;
+        return 0;
+    }
+    if (strcmp(receive_char, "DISCONNECT") == 0) {
+        message->operation = 3; //DISCONNECT SERA 3
+        char username[256];
+        op = receive_characters(socket, username);
+        if (op == -1) {
+            return -1;
+        }
+        memcpy(message->username, username, strlen(username));
+        printf("OPERATION %s FROM %s\n", receive_char, username);
+        printf("DISCONNECT\n");
+    }
+    if (strcmp(receive_char, "PUBLISH") == 0) {
+        message->operation = 4;  //PUBLISH SERÁ 4
+        char username[256];
+        op = receive_characters(socket, username);
+        if (op == -1) {
+            return -1;
+        }
+        memcpy(message->username, username, strlen(username));
+        printf("OPERATION %s FROM %s\n", receive_char, username);
+        printf("PUBLISH\n");
+    }
+    if (strcmp(receive_char, "DELETE") == 0) {
+        message->operation = 5;  //DELETE SERÁ 5
+        char username[256];
+        op = receive_characters(socket, username);
+        if (op == -1) {
+            return -1;
+        }
+        memcpy(message->username, username, strlen(username));
+        printf("OPERATION %s FROM %s\n", receive_char, username);
+        printf("DELETE\n");
+    }
+    if (strcmp(receive_char, "LIST_USERS") == 0) {
+        message->operation = 6;  //LIST_USERS SERÁ 6
+        char username[256];
+        op = receive_characters(socket, username);
+        if (op == -1) {
+            return -1;
+        }
+        memcpy(message->username, username, strlen(username));
+        printf("OPERATION %s FROM %s\n", receive_char, username);
+        printf("LIST_USERS\n");
+    }
+    if (strcmp(receive_char, "LIST_CONTENT") == 0) {
+        message->operation = 7;  //LIST_CONTENT SERÁ 7
+        char username[256];
+        op = receive_characters(socket, username);
+        if (op == -1) {
+            return -1;
+        }
+        memcpy(message->username, username, strlen(username));
+        printf("OPERATION %s FROM %s\n", receive_char, username);
+        printf("LIST_CONTENT\n");
+    }
+    else {
+        return -1;
+    }
+
     return 0;
 }
 
@@ -156,5 +253,22 @@ int send_package(int socket, void *message, int size) {
  */
 int send_message(int socket, request *answer) {
 
+    if (answer->operation <=5 ) {
+        char ans = '0';
+        if (answer->answer == 0) {
+            ans = '0';
+        }
+        else if (answer->answer == 1) {
+            ans = '1';
+        }
+        else {
+            ans = '2';
+        }
+        int sent = send_package(socket, &ans, 1);
+        if (sent<0) {
+            perror("Error writing to socket");
+            return -1;
+        }
+    }
     return 0;
 }

@@ -50,12 +50,11 @@ void pad_array() {
  *@brief Esta función se usa para enviar el mensaje de vuelta al cliente, recibe como parametros el socket y la estructura request
  * y con ella envia los datos. es invocada por cada hilo en la funcion process request.
  */
-/*
+
 int answer_back(int socket, request *params) {
     return send_message(socket, params);
 }
 
-*/
 /**
  *@brief Función que se encarga de "anunciar" que un hilo ha terminado su tarea y pueda volver al ruedo
  */
@@ -78,19 +77,52 @@ void end_thread(int thread_id) {
 void *process_request(parameters_to_pass *socket) {
     pthread_mutex_lock(&mutex_copy_params);
     int socket_id = socket->identifier;
+    char *ip_addr = socket->client_ip;
     free_mutex_copy_params_cond = 1;
     pthread_cond_signal(&cond_wait_cpy);
     pthread_mutex_unlock(&mutex_copy_params);
     request local_request;
     printf("SENSUAL\n");
+    printf("Notificacion recibida desde la ip %s\n", ip_addr);
     int message = receive_message(sc[socket_id], &local_request);
     if (message < 0) {
         end_thread(socket_id);
         pthread_exit(0);
     }
+    switch (local_request.operation) {
+        case 0:
+            local_request.answer = register_user(local_request.username);
+            if (local_request.answer != 0) {
+                printf("Error inserting user:%s\n", local_request.username);
+            }
+        break;
+        case 1:
+            local_request.answer = unregister_user(local_request.username);
+            if (local_request.answer != 0) {
+            printf("Error removing user:%s\n", local_request.username);
+            }
+        break;
+        case 2:
+            local_request.answer = connect_client(local_request.username, local_request.port,local_request.ip);
+        if (local_request.answer != 0) {
+            printf("Error connecting user:%s\n", local_request.username);
+        }
+        break;
+        case 3:
 
+        case 4:
 
-    //answer_back(sc[socket_id], &local_request);
+        case 5:
+
+        case 6:
+
+        case 7:
+
+        default:
+            break;
+    }
+
+    answer_back(sc[socket_id], &local_request);
     end_thread(socket_id);
     return NULL;
 }
@@ -209,7 +241,7 @@ int main(int argc, char **argv) {
 
     //Inicializo lo necesario para los sockets.
     struct sockaddr_in server_addr, client_addr;
-    socklen_t size;
+    socklen_t size = sizeof(client_addr);
     int sd, val = 0;
     int err;
 
@@ -269,6 +301,10 @@ int main(int argc, char **argv) {
             sem_post(&available_threads);
             continue;
         }
+        //Obtengo la ip del cliente(Necesario para el caso de la peticion publish
+        char client_ip[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &(client_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
+
         //Miro el primer hilo disponible y le mando currar.
         for (int i = 0; i < MAX_THREADS; i++) {
             if (free_threads_array[i] == 0) {
@@ -277,6 +313,7 @@ int main(int argc, char **argv) {
                 //Se copia el fd del sc_temp al indice correspondiente
                 sc[i] = sc_temp;
                 params.identifier = i;
+                strcpy(params.client_ip, client_ip); //Ip copiada
                 pthread_mutex_unlock(&mutex_workload);
                 if (pthread_create(&thread_pool[i], NULL, (void *) process_request, &params) == 0) {
                     pthread_mutex_lock(&mutex_copy_params);

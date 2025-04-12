@@ -29,7 +29,7 @@ int register_user(char *username)
     if (create_database != SQLITE_OK)
     {
         fprintf(stderr, "Error opening the database\n");
-        return -1;
+        return 2;
     }
     char *message_error = NULL;
     //Habilitar las foreign keys para mejor manejo de la base de datos
@@ -37,13 +37,13 @@ int register_user(char *username)
     {
         fprintf(stderr, "Error with the fk definition %s", message_error);
         sqlite3_close(database);
-        return -4;
+        return 2;
     }
     char insert[256];
     //Insertar los primeros parametros en data
     sprintf(insert,
             "INSERT into clients(username) "
-            " VALUES(%s);", username);
+            " VALUES('%s');", username);
     int test;
     pthread_mutex_lock(&ddbb_mutex);
     if ((test = sqlite3_exec(database, insert, NULL, NULL, &message_error)) != SQLITE_OK)
@@ -53,12 +53,12 @@ int register_user(char *username)
             fprintf(stderr, "ERROR inserting in primary table %s\n", sqlite3_errmsg(database));
             sqlite3_close(database);
             pthread_mutex_unlock(&ddbb_mutex);
-            return -1;
+            return 2;
         }
-        fprintf(stderr, "Error PK duplicated with associated user: %s\n", user);
+        fprintf(stderr, "Error PK duplicated with associated user: %s\n", username);
         sqlite3_close(database);
         pthread_mutex_unlock(&ddbb_mutex);
-        return -1;
+        return 1;
     }
     pthread_mutex_unlock(&ddbb_mutex);
     sqlite3_close(database);
@@ -78,7 +78,7 @@ int unregister_user(char *username)
     if (create_database != SQLITE_OK)
     {
         fprintf(stderr, "Error opening the database\n");
-        return -1;
+        return 2;
     }
 
     char *message_error = NULL;
@@ -87,25 +87,25 @@ int unregister_user(char *username)
     {
         fprintf(stderr, "Error with the fk definition %s", message_error);
         sqlite3_close(database);
-        return -4;
+        return -2;
     }
     // Nueva consulta preparada
     char delete_query[256];
-    sprintf(delete_query, "DELETE FROM clients WHERE username == %s;", username);
+    sprintf(delete_query, "DELETE FROM clients WHERE username == '%s';", username);
     pthread_mutex_lock(&ddbb_mutex);
     if (sqlite3_exec(database, delete_query, NULL, NULL, &message_error) != SQLITE_OK)
     {
         fprintf(stderr, "Error deleting user %s", message_error);
         sqlite3_close(database);
         pthread_mutex_unlock(&ddbb_mutex);
-        return -1;
+        return 2;
     }
     if (sqlite3_changes(database) == 0)
     {
         printf("user %s does not exist, no rows deleted\n", username);
         sqlite3_close(database);
         pthread_mutex_unlock(&ddbb_mutex);
-        return -1;
+        return 1;
     }
     pthread_mutex_unlock(&ddbb_mutex);
     printf("User %s erased correctly\n", username);
@@ -116,12 +116,8 @@ int unregister_user(char *username)
 /**
  *
  */
-int connect_client(char * username, int port_num, int ip_addr)
+int connect_client(char * username, __uint32_t port_num, int ip_addr)
 {
-
-
-
-
 
 
 
