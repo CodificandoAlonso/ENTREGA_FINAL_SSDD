@@ -4,7 +4,7 @@ INCLUDES = -I src/structs
 
 
 #SERVIDOR
-SERVER_SRCS = src/server-side/servidor-sock.c src/server-side/claves.c src/server-side/treat_sql.c src/common/socket_message.c
+SERVER_SRCS = src/server/server.c src/server/database_control.c src/server/sql_recall.c src/server/message_control.c
 SERVER_OBJS = $(SERVER_SRCS:.c=.o)
 SERVER_BIN  = servidor
 
@@ -84,4 +84,4 @@ clean:
 	rm -f $(SERVER_OBJS) $(CLIENT_LIB_OBJS) $(CLIENT1_APP_OBJS) $(CLIENT2_APP_OBJS) $(CLIENT3_APP_OBJS) \
 			$(CLIENT_INF_APP_OBJS) $(CLIENT_PES_APP_OBJS) \
 	      $(SERVER_BIN) $(CLIENT1_BIN) $(CLIENT2_BIN) $(CLIENT3_BIN) $(CLIENT_INF_BIN) $(CLIENT_PES_BIN) $(LIB_NAME)
-	rm -rf /tmp/database-$(USER_NAME).db
+	rm -rf database-$(USER_NAME).db
