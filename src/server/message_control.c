@@ -141,8 +141,8 @@ int receive_message(int socket, request *message) {
         if (op == -1) {
             return -1;
         }
-        printf("el puerto es %s\n", receive_char);
-        __uint32_t port = ntohl(atoi(receive_char));
+        __uint32_t port = atoi(receive_char);
+        printf("el puerto es %d\n", port);
         message->port = port;
         return 0;
     }
@@ -156,6 +156,7 @@ int receive_message(int socket, request *message) {
         memcpy(message->username, username, strlen(username));
         printf("OPERATION %s FROM %s\n", receive_char, username);
         printf("DISCONNECT\n");
+        return 0;
     }
     if (strcmp(receive_char, "PUBLISH") == 0) {
         message->operation = 4;  //PUBLISH SERÁ 4
@@ -189,6 +190,7 @@ int receive_message(int socket, request *message) {
         memcpy(message->username, username, strlen(username));
         printf("OPERATION %s FROM %s\n", receive_char, username);
         printf("LIST_USERS\n");
+        return 0;
     }
     if (strcmp(receive_char, "LIST_CONTENT") == 0) {
         message->operation = 7;  //LIST_CONTENT SERÁ 7
@@ -270,5 +272,51 @@ int send_message(int socket, request *answer) {
             return -1;
         }
     }
+    return 0;
+}
+
+
+/**
+ * @brief Envía un mensaje a través de un socket.
+ *
+ * @param socket Descriptor del socket al que se enviará el mensaje.
+ * @param answer Puntero a la estructura 'request' que contiene el mensaje a enviar
+ * @return int 0 si el envío fue exitoso, -1 si hubo un error.
+ */
+int send_message_query(int socket, request_query_clients *answer) {
+
+        char ans[2] = {answer->answer + '0', '\0'};
+        int sent = send_package(socket, &ans, 2);
+        if (sent<0) {
+            perror("Error writing to socket");
+            return -1;
+        }
+        if (answer->answer == 0) {
+            char ans2[2] = {answer->number + '0', '\0'};
+            sent = send_package(socket, &ans2, 2);
+            if (sent<0) {
+                perror("Error writing to socket");
+                return -1;
+            }
+            for (int i = 0; i < answer->number; i++) {
+                sent = send_package(socket, &answer->users[i], strlen(answer->users[i]) + 1);
+                if (sent<0) {
+                    perror("Error writing to socket");
+                    return -1;
+                }
+                sent = send_package(socket, &answer->ips[i], strlen(answer->ips[i]) +1);
+                if (sent<0) {
+                    perror("Error writing to socket");
+                    return -1;
+                }
+                char cadena[256];
+                sprintf(cadena, "%d", answer->ports[i]);
+                sent = send_package(socket, cadena, strlen(cadena) + 1);
+                if (sent<0) {
+                    perror("Error writing to socket");
+                    return -1;
+                }
+            }
+        }
     return 0;
 }

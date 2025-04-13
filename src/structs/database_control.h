@@ -18,7 +18,7 @@ int unregister_user(char *username);
 /**
  *
  */
-int connect_client(char * username, int port_num, int ip_addr);
+int connect_client(char * username, __uint32_t port_num, char *ip_addr);
 
 /**
  * @brief
@@ -39,7 +39,7 @@ int delete(char *path);
 /**
  * @brief
  */
-int list_users(char *user);
+int list_users(char *username, char users[2048][256], char ips[2048][256], int ports[2048], int *len);
 
 /**
  * @brief

@@ -11,7 +11,7 @@
 typedef struct request {
     int operation;
     char username[256];
-    int ip;
+    char client_ip[INET_ADDRSTRLEN];
     __uint32_t port;
     char path[256];
     char description[256];
@@ -19,6 +19,15 @@ typedef struct request {
 }request;
 
 
+
+typedef struct request_query_clients {
+    char users[2048][256];
+    char ips[2048][256];
+    int ports[2048];
+    int number;
+    int empty;
+    int answer;
+}request_query_clients;
 
 /**
  * @brief
@@ -32,7 +41,11 @@ typedef struct parameters_to_pass_threads
 
 
 typedef struct receive_sql {
-
+    int empty;
+    char user[256];
+    char users[2048][256];
+    char ips[2048][256];
+    int ports[2048];
 }receive_sql;
 
 

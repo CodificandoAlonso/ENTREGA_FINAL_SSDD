@@ -68,5 +68,6 @@ int send_package(int socket, void *message, int size);
  */
 int send_message(int socket, request *answer);
 
+int send_message_query(int socket, request_query_clients *answer);
 
 #endif //SOCKET_MESSAGE_H

@@ -50,10 +50,18 @@ void pad_array() {
  *@brief Esta función se usa para enviar el mensaje de vuelta al cliente, recibe como parametros el socket y la estructura request
  * y con ella envia los datos. es invocada por cada hilo en la funcion process request.
  */
-
 int answer_back(int socket, request *params) {
     return send_message(socket, params);
 }
+
+/**
+ *@brief Esta función se usa para enviar el mensaje de vuelta al cliente, recibe como parametros el socket y la estructura request
+ * y con ella envia los datos. es invocada por cada hilo en la funcion process request.
+ */
+int answer_back_query(int socket, request_query_clients *params) {
+    return send_message_query(socket, params);
+}
+
 
 /**
  *@brief Función que se encarga de "anunciar" que un hilo ha terminado su tarea y pueda volver al ruedo
@@ -103,19 +111,22 @@ void *process_request(parameters_to_pass *socket) {
             }
         break;
         case 2:
-            local_request.answer = connect_client(local_request.username, local_request.port,local_request.ip);
+            local_request.answer = connect_client(local_request.username, local_request.port, ip_addr);
         if (local_request.answer != 0) {
             printf("Error connecting user:%s\n", local_request.username);
         }
         break;
         case 3:
-
         case 4:
 
         case 5:
 
         case 6:
-
+            request_query_clients local_query = {0};
+            local_query.answer = list_users(local_request.username, local_query.users, local_query.ips,local_query.ports, &local_query.number);
+            answer_back_query(sc[socket_id], &local_query);
+            end_thread(socket_id);
+            return NULL;
         case 7:
 
         default:
@@ -162,10 +173,10 @@ int create_table(sqlite3 *db) {
     new_table =
             "CREATE TABLE IF NOT EXISTS users_connected("
             " port_key TEXT PRIMARY KEY,"
-            " user TEXT,"
+            " username TEXT,"
             " ip TEXT,"
             " port INTEGER,"
-            "CONSTRAINT fk_origin FOREIGN KEY(user) REFERENCES clients(username)\n ON DELETE CASCADE\n"
+            "CONSTRAINT fk_origin FOREIGN KEY(username) REFERENCES clients(username)\n ON DELETE CASCADE\n"
             "ON UPDATE CASCADE);";
 
     if (sqlite3_exec(db, new_table, NULL, NULL, &message_error) != SQLITE_OK) {
@@ -177,10 +188,10 @@ int create_table(sqlite3 *db) {
     new_table =
             "CREATE TABLE IF NOT EXISTS publications("
             " pub_name TEXT PRIMARY KEY,"
-            " user TEXT,"
+            " username TEXT,"
             " path TEXT,"
             " description TEXT,"
-            "CONSTRAINT fk_origin FOREIGN KEY(user) REFERENCES clients(username)\n ON DELETE CASCADE\n"
+            "CONSTRAINT fk_origin FOREIGN KEY(username) REFERENCES clients(username)\n ON DELETE CASCADE\n"
             "ON UPDATE CASCADE);";
 
     if (sqlite3_exec(db, new_table, NULL, NULL, &message_error) != SQLITE_OK) {
