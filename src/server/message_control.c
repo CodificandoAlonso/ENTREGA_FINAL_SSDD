@@ -16,6 +16,17 @@
 
 
 
+
+int isBigEndian(void) {
+    unsigned int num = 1;
+    // Si el primer byte (dirección más baja) es 1, es little endian
+    if (*(char *) &num == 1)
+        return 0; // little endian
+    return 1; //big_endian
+}
+
+
+
 /**
  * @brief Recibe un paquete de datos a través de un socket.
  *
@@ -167,7 +178,25 @@ int receive_message(int socket, request *message) {
         }
         memcpy(message->username, username, strlen(username));
         printf("OPERATION %s FROM %s\n", receive_char, username);
-        printf("PUBLISH\n");
+        char filename[256];
+        op = receive_characters(socket, filename);
+        if (op == -1) {
+            return -1;
+        }
+        memcpy(message->filename, filename, strlen(filename));
+        char path[256];
+        op = receive_characters(socket, path);
+        if (op == -1) {
+            return -1;
+        }
+        memcpy(message->path, path, strlen(path));
+        char description[256];
+        op = receive_characters(socket, description);
+        if (op == -1) {
+            return -1;
+        }
+        memcpy(message->description, description, strlen(description));
+        return 0;
     }
     if (strcmp(receive_char, "DELETE") == 0) {
         message->operation = 5;  //DELETE SERÁ 5
@@ -256,19 +285,17 @@ int send_package(int socket, void *message, int size) {
 int send_message(int socket, request *answer) {
 
     if (answer->operation <=5 ) {
-        char ans = '0';
-        if (answer->answer == 0) {
-            ans = '0';
-        }
-        else if (answer->answer == 1) {
-            ans = '1';
+        __uint8_t *ans = (__uint8_t *) &answer->answer;
+
+        int sent = 0;
+        if (isBigEndian() == 0) { //little endian
+            sent = send_package(socket, &ans[0], 1);
         }
         else {
-            ans = '2';
+            sent = send_package(socket, &ans[3], 1);
         }
-        int sent = send_package(socket, &ans, 1);
         if (sent<0) {
-            perror("Error writing to socket");
+           perror("Error writing to socket");
             return -1;
         }
     }
@@ -285,12 +312,19 @@ int send_message(int socket, request *answer) {
  */
 int send_message_query(int socket, request_query_clients *answer) {
 
-        char ans[2] = {answer->answer + '0', '\0'};
-        int sent = send_package(socket, &ans, 2);
+        __uint8_t *ans = (__uint8_t *) &answer->answer;
+        int sent = 0;
+        if (isBigEndian() == 0) { //little endian
+            sent = send_package(socket, &ans[0], 1);
+        }
+        else {
+            sent = send_package(socket, &ans[3], 1);
+        }
         if (sent<0) {
             perror("Error writing to socket");
             return -1;
         }
+
         if (answer->answer == 0) {
             char ans2[2] = {answer->number + '0', '\0'};
             sent = send_package(socket, &ans2, 2);

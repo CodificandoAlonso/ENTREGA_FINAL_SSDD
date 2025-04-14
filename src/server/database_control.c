@@ -175,6 +175,9 @@ int connect_client(char * username, __uint32_t port_num, char *ip_addr)
     if (exist("clients" ,username) < 0) {
         return 1;
     }
+    if (exist("users_connected", username) == 0) {
+        return 2;
+    }
 
     sprintf(pk,"%s-%d", ip_addr, port_num);
     sprintf(insert,
@@ -222,8 +225,53 @@ int disconnect(char *username)
  */
 int publish(char *name, char *user, char *path, char *description)
 {
-
-
+    sqlite3* database;
+    char *user_ddbb = getlogin(); //PARA LA BASE DE DATOS
+    char db_name[256];
+    snprintf(db_name, sizeof(db_name), "database-%s.db", user_ddbb);
+    int create_database = sqlite3_open(db_name, &database);
+    if (create_database != SQLITE_OK)
+    {
+        fprintf(stderr, "Error opening the database\n");
+        return 2;
+    }
+    char *message_error = NULL;
+    //Habilitar las foreign keys para mejor manejo de la base de datos
+    if (sqlite3_exec(database, "PRAGMA foreign_keys = ON;", NULL, NULL, &message_error) != SQLITE_OK)
+    {
+        fprintf(stderr, "Error with the fk definition %s", message_error);
+        sqlite3_close(database);
+        return 3;
+    }
+    if (exist("clients" ,user) < 0) {
+        return 1;
+    }
+    if (exist("users_connected", user) < 0) {
+        return 2;
+    }
+    char insert[2048];
+    sprintf(insert,
+            "INSERT into publications(pub_name, username, path, description) "
+            " VALUES('%s','%s','%s','%s');", name,user, path, description);
+    int test;
+    pthread_mutex_lock(&ddbb_mutex);
+    if ((test = sqlite3_exec(database, insert, NULL, NULL, &message_error)) != SQLITE_OK)
+    {
+        if (test != SQLITE_CONSTRAINT)
+        {
+            fprintf(stderr, "ERROR inserting in publications table %s\n", sqlite3_errmsg(database));
+            sqlite3_close(database);
+            pthread_mutex_unlock(&ddbb_mutex);
+            return 4;
+        }
+        fprintf(stderr, "Error PK duplicated with associated file: %s\n", name);
+        sqlite3_close(database);
+        pthread_mutex_unlock(&ddbb_mutex);
+        return 3;
+    }
+    pthread_mutex_unlock(&ddbb_mutex);
+    sqlite3_close(database);
+    return 0;
 
 
     return 0;

@@ -13,8 +13,10 @@ typedef struct request {
     char username[256];
     char client_ip[INET_ADDRSTRLEN];
     __uint32_t port;
+    char filename[256];
     char path[256];
     char description[256];
+    char username2[256];
     int answer;
 }request;
 

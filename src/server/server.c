@@ -118,7 +118,7 @@ void *process_request(parameters_to_pass *socket) {
         break;
         case 3:
         case 4:
-
+             local_request.answer = publish(local_request.filename, local_request.username, local_request.path, local_request.description);
         case 5:
 
         case 6:
