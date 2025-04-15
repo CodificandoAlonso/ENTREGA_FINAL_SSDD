@@ -2,6 +2,7 @@
 // Created by hector-pc on 12/04/25.
 //
 
+#include <database_control.h>
 #include <pthread.h>
 #include<stdio.h>
 #include<sqlite3.h>
@@ -17,7 +18,7 @@ pthread_mutex_t ddbb_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 
-int exist(char * table,char *username)
+int exist(char * table,char *username, char *type)
 {
     sqlite3* database;
     char *user = getlogin(); //PARA LA BASE DE DATOS
@@ -30,7 +31,8 @@ int exist(char * table,char *username)
         return -1;
     }
     char query[256];
-    sprintf(query, "SELECT username FROM '%s' WHERE username == '%s';",table, username);
+    sprintf(query, "SELECT %s FROM %s WHERE %s == '%s';",type,table, type, username);
+    printf("%s\n",query);
     receive_sql receive = {0};
     pthread_mutex_lock(&ddbb_mutex);
     if (sqlite3_exec(database, query, recall_row_users, (void*)&receive, NULL) != SQLITE_OK)
@@ -48,6 +50,37 @@ int exist(char * table,char *username)
     return 0;
 }
 
+
+int delete_generic(char *query) {
+    sqlite3* database;
+    char *user = getlogin();
+    char db_name[256];
+    snprintf(db_name, sizeof(db_name), "database-%s.db", user);
+    int create_database = sqlite3_open(db_name, &database);
+    if (create_database != SQLITE_OK) {
+        fprintf(stderr, "Error opening the database\n");
+        return -1;
+    }
+    char *message_error = NULL;
+    //Habilitar las foreign keys para mejor manejo de la base de datos
+    if (sqlite3_exec(database, "PRAGMA foreign_keys = ON;", NULL, NULL, &message_error) != SQLITE_OK)
+    {
+        fprintf(stderr, "Error with the fk definition %s", message_error);
+        sqlite3_close(database);
+        return -1;
+    }
+    pthread_mutex_lock(&ddbb_mutex);
+    if (sqlite3_exec(database, query, NULL, NULL, &message_error) != SQLITE_OK)
+    {
+        fprintf(stderr, "Error deleting generic %s", message_error);
+        sqlite3_close(database);
+        pthread_mutex_unlock(&ddbb_mutex);
+        return -1;
+    }
+    pthread_mutex_unlock(&ddbb_mutex);
+    sqlite3_close(database);
+    return 0;
+}
 
 
 /**
@@ -114,7 +147,9 @@ int unregister_user(char *username)
         fprintf(stderr, "Error opening the database\n");
         return 2;
     }
-
+    if (exist("clients" ,username,"username") < 0) {
+        return 1;
+    }
     char *message_error = NULL;
     //Habilitar las foreign keys para mejor manejo de la base de datos
     if (sqlite3_exec(database, "PRAGMA foreign_keys = ON;", NULL, NULL, &message_error) != SQLITE_OK)
@@ -126,6 +161,7 @@ int unregister_user(char *username)
     // Nueva consulta preparada
     char delete_query[256];
     sprintf(delete_query, "DELETE FROM clients WHERE username == '%s';", username);
+    /*
     pthread_mutex_lock(&ddbb_mutex);
     if (sqlite3_exec(database, delete_query, NULL, NULL, &message_error) != SQLITE_OK)
     {
@@ -134,16 +170,13 @@ int unregister_user(char *username)
         pthread_mutex_unlock(&ddbb_mutex);
         return 2;
     }
-    if (sqlite3_changes(database) == 0)
-    {
-        printf("user %s does not exist, no rows deleted\n", username);
-        sqlite3_close(database);
-        pthread_mutex_unlock(&ddbb_mutex);
-        return 1;
-    }
     pthread_mutex_unlock(&ddbb_mutex);
     printf("User %s erased correctly\n", username);
     sqlite3_close(database);
+    */
+    if (delete_generic(delete_query) < 0) {
+        return 2;
+    }
     return 0;
 }
 
@@ -170,12 +203,12 @@ int connect_client(char * username, __uint32_t port_num, char *ip_addr)
         sqlite3_close(database);
         return 3;
     }
-    char insert[256], pk[256];
+    char insert[1024], pk[256];
 
-    if (exist("clients" ,username) < 0) {
+    if (exist("clients" ,username,"username") < 0) {
         return 1;
     }
-    if (exist("users_connected", username) == 0) {
+    if (exist("users_connected", username,"username") == 0) {
         return 2;
     }
 
@@ -210,12 +243,48 @@ int connect_client(char * username, __uint32_t port_num, char *ip_addr)
  */
 int disconnect(char *username)
 {
-
-
-
-
-
-
+    sqlite3* database;
+    char *user = getlogin(); //PARA LA BASE DE DATOS
+    char db_name[256];
+    snprintf(db_name, sizeof(db_name), "database-%s.db", user);
+    int create_database = sqlite3_open(db_name, &database);
+    if (create_database != SQLITE_OK)
+    {
+        fprintf(stderr, "Error opening the database\n");
+        return 2;
+    }
+    char *message_error = NULL;
+    //Habilitar las foreign keys para mejor manejo de la base de datos
+    if (sqlite3_exec(database, "PRAGMA foreign_keys = ON;", NULL, NULL, &message_error) != SQLITE_OK)
+    {
+        fprintf(stderr, "Error with the fk definition %s", message_error);
+        sqlite3_close(database);
+        return 3;
+    }
+    char query[256];
+    if (exist("clients" ,username,"username") < 0) {
+        return 1;
+    }
+    if (exist("users_connected", username, "username") < 0) {
+        return 2;
+    }
+    sprintf(query,"Delete from users_connected WHERE username =='%s';", username);
+    /*
+    pthread_mutex_lock(&ddbb_mutex);
+    if (sqlite3_exec(database, query, NULL, NULL, &message_error) != SQLITE_OK)
+    {
+        fprintf(stderr, "Error deleting key %s", message_error);
+        sqlite3_close(database);
+        pthread_mutex_unlock(&ddbb_mutex);
+        return -1;
+    }
+    pthread_mutex_unlock(&ddbb_mutex);
+    sqlite3_close(database);
+    */
+    if (delete_generic(query) < 0) {
+        return 3;
+    }
+    sqlite3_close(database);
     return 0;
 }
 
@@ -223,7 +292,7 @@ int disconnect(char *username)
 /**
  * @brief
  */
-int publish(char *name, char *user, char *path, char *description)
+int publish(char *user, char *path, char *description)
 {
     sqlite3* database;
     char *user_ddbb = getlogin(); //PARA LA BASE DE DATOS
@@ -243,16 +312,16 @@ int publish(char *name, char *user, char *path, char *description)
         sqlite3_close(database);
         return 3;
     }
-    if (exist("clients" ,user) < 0) {
+    if (exist("clients" ,user, "username") < 0) {
         return 1;
     }
-    if (exist("users_connected", user) < 0) {
+    if (exist("users_connected", user, "username") < 0) {
         return 2;
     }
     char insert[2048];
     sprintf(insert,
-            "INSERT into publications(pub_name, username, path, description) "
-            " VALUES('%s','%s','%s','%s');", name,user, path, description);
+            "INSERT into publications(path, username, description) "
+            " VALUES('%s','%s','%s');", path,user, description);
     int test;
     pthread_mutex_lock(&ddbb_mutex);
     if ((test = sqlite3_exec(database, insert, NULL, NULL, &message_error)) != SQLITE_OK)
@@ -264,7 +333,7 @@ int publish(char *name, char *user, char *path, char *description)
             pthread_mutex_unlock(&ddbb_mutex);
             return 4;
         }
-        fprintf(stderr, "Error PK duplicated with associated file: %s\n", name);
+        fprintf(stderr, "Error PK duplicated with associated filepath: %s\n", path);
         sqlite3_close(database);
         pthread_mutex_unlock(&ddbb_mutex);
         return 3;
@@ -273,19 +342,38 @@ int publish(char *name, char *user, char *path, char *description)
     sqlite3_close(database);
     return 0;
 
-
-    return 0;
 }
 
 /**
  * @brief
  */
-int delete(char *path)
+int delete(char *path, char *username)
 {
-
-
-
-
+    sqlite3* database;
+    char *user_ddbb = getlogin(); //PARA LA BASE DE DATOS
+    char db_name[256];
+    snprintf(db_name, sizeof(db_name), "database-%s.db", user_ddbb);
+    int create_database = sqlite3_open(db_name, &database);
+    if (create_database != SQLITE_OK)
+    {
+        fprintf(stderr, "Error opening the database\n");
+        return 4;
+    }
+    if (exist("clients" ,username, "username") < 0) {
+        return 1;
+    }
+    if (exist("users_connected", username, "username") < 0) {
+        return 2;
+    }
+    if (exist("publications", path, "path") < 0) {
+        return 3;
+    }
+    char query [512];
+    sprintf(query,"Delete from publications WHERE path =='%s';", path);
+    if (delete_generic(query) < 0) {
+        return 4;
+    }
+    sqlite3_close(database);
     return 0;
 }
 
@@ -306,16 +394,15 @@ int list_users(char *username, char users[2048][256], char ips[2048][256], int p
     }
 
     //Se parará la query si el cliente no está registrado o conectado
-    if (exist("clients" ,username) < 0) {
+    if (exist("clients" ,username, "username") < 0) {
         return 1; //No existe
     }
-    if (exist("users_connected", username)< 0) {
+    if (exist("users_connected", username, "username")< 0) {
         return 2; //No conectado
     }
 
     char query[256];
     sprintf(query, "SELECT username,ip,port FROM users_connected WHERE username != '%s';", username);
-    printf("%s\n", query);
     request_query_clients receive = {0};
     pthread_mutex_lock(&ddbb_mutex);
     if (sqlite3_exec(database, query, recall_row_users_query, (void*)&receive, NULL) != SQLITE_OK)

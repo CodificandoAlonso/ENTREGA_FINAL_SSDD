@@ -4,6 +4,7 @@
 
 #ifndef CONTROL_DDBB_H
 #define CONTROL_DDBB_H
+#include <bits/types.h>
 
 /**
  * @brief
@@ -29,12 +30,12 @@ int disconnect(char *username);
 /**
  * @brief
  */
-int publish(char *name, char *user, char *path, char *description);
+int publish(char *user, char *path, char *description);
 
 /**
  * @brief
  */
-int delete(char *path);
+int delete(char *path, char *username);
 
 /**
  * @brief

@@ -79,8 +79,8 @@ void end_thread(int thread_id) {
 /**
  *@brief Esta es la función que ejecutan los distintos hilos dentro de nuestra pool de hilos
  *Requiere el paso como referencia de una estructura que contenga el índice del socket sobre el que trabaja el hilo
- *Una vez que el codigo realiza la copia local de los datos se encargará de gestionar las distintas llamadas de todo para realizar las gestiones
- *en la base de datos correspondiente
+ *Una vez que el codigo realiza la copia local de los datos se encargará de gestionar las distintas llamadas de
+ *todo para realizar las gestiones en la base de datos correspondiente
  */
 void *process_request(parameters_to_pass *socket) {
     pthread_mutex_lock(&mutex_copy_params);
@@ -90,44 +90,51 @@ void *process_request(parameters_to_pass *socket) {
     pthread_cond_signal(&cond_wait_cpy);
     pthread_mutex_unlock(&mutex_copy_params);
     request local_request;
-    printf("SENSUAL\n");
-    printf("Notificacion recibida desde la ip %s\n", ip_addr);
     int message = receive_message(sc[socket_id], &local_request);
     if (message < 0) {
         end_thread(socket_id);
         pthread_exit(0);
     }
     switch (local_request.operation) {
-        case 0:
+        case 0: //REGISTER
             local_request.answer = register_user(local_request.username);
             if (local_request.answer != 0) {
                 printf("Error inserting user:%s\n", local_request.username);
             }
         break;
-        case 1:
+        case 1: //UNREGISTER
             local_request.answer = unregister_user(local_request.username);
             if (local_request.answer != 0) {
             printf("Error removing user:%s\n", local_request.username);
             }
         break;
-        case 2:
+        case 2: //CONNECT
             local_request.answer = connect_client(local_request.username, local_request.port, ip_addr);
         if (local_request.answer != 0) {
             printf("Error connecting user:%s\n", local_request.username);
         }
         break;
-        case 3:
-        case 4:
-             local_request.answer = publish(local_request.filename, local_request.username, local_request.path, local_request.description);
-        case 5:
-
-        case 6:
+        case 3: //DISCONNECT
+            local_request.answer = disconnect(local_request.username);
+        if (local_request.answer != 0) {
+            printf("Error disconnecting user:%s\n", local_request.username);
+        }
+        break;
+        case 4: //PUBLISH
+             local_request.answer = publish(local_request.username, local_request.path,
+                                            local_request.description);
+        break;
+        case 5: //DELETE
+             local_request.answer = delete(local_request.path, local_request.username);
+        break;
+        case 6: //LIST_USERS
             request_query_clients local_query = {0};
-            local_query.answer = list_users(local_request.username, local_query.users, local_query.ips,local_query.ports, &local_query.number);
+            local_query.answer = list_users(local_request.username, local_query.users, local_query.ips,
+                                            local_query.ports, &local_query.number);
             answer_back_query(sc[socket_id], &local_query);
             end_thread(socket_id);
             return NULL;
-        case 7:
+        case 7: //LIST_CONTENT
 
         default:
             break;
@@ -187,9 +194,8 @@ int create_table(sqlite3 *db) {
     message_error = NULL;
     new_table =
             "CREATE TABLE IF NOT EXISTS publications("
-            " pub_name TEXT PRIMARY KEY,"
+            " path TEXT PRIMARY KEY,"
             " username TEXT,"
-            " path TEXT,"
             " description TEXT,"
             "CONSTRAINT fk_origin FOREIGN KEY(username) REFERENCES clients(username)\n ON DELETE CASCADE\n"
             "ON UPDATE CASCADE);";

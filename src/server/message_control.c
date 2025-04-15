@@ -105,7 +105,7 @@ int receive_package(int socket, void *message, int size) {
  *
  * @param socket Descriptor del socket desde el que se va a leer el mensaje.
  * @param message Puntero a la estructura 'request' donde se almacenarán los datos recibidos.
- * @return int 0 si la recepción fue exitosa, -1 si hubo un error.
+ * @return Int 0 si la recepción fue exitosa, -1 si hubo un error.
  */
 int receive_message(int socket, request *message) {
     /* Primero se recibe una cadena con la operación a realizar. Esta puede ser:
@@ -117,6 +117,7 @@ int receive_message(int socket, request *message) {
         return -1;
     }
 
+    //IFS DE CASOS PARA LOS DIFERENTES METODOS DISPONIBLES, DE NO SER NINGUNO SE RETORNA -1
     if (strcmp(receive_char, "REGISTER") == 0) {
         message->operation = 0;  //REGISTER SERÁ 0
         char username[256];
@@ -178,12 +179,6 @@ int receive_message(int socket, request *message) {
         }
         memcpy(message->username, username, strlen(username));
         printf("OPERATION %s FROM %s\n", receive_char, username);
-        char filename[256];
-        op = receive_characters(socket, filename);
-        if (op == -1) {
-            return -1;
-        }
-        memcpy(message->filename, filename, strlen(filename));
         char path[256];
         op = receive_characters(socket, path);
         if (op == -1) {
@@ -207,7 +202,12 @@ int receive_message(int socket, request *message) {
         }
         memcpy(message->username, username, strlen(username));
         printf("OPERATION %s FROM %s\n", receive_char, username);
-        printf("DELETE\n");
+        op = receive_characters(socket, username);
+        if (op == -1) {
+            return -1;
+        }
+        memcpy(message->path, username, strlen(username));
+        return 0;
     }
     if (strcmp(receive_char, "LIST_USERS") == 0) {
         message->operation = 6;  //LIST_USERS SERÁ 6
@@ -218,7 +218,6 @@ int receive_message(int socket, request *message) {
         }
         memcpy(message->username, username, strlen(username));
         printf("OPERATION %s FROM %s\n", receive_char, username);
-        printf("LIST_USERS\n");
         return 0;
     }
     if (strcmp(receive_char, "LIST_CONTENT") == 0) {
@@ -230,13 +229,14 @@ int receive_message(int socket, request *message) {
         }
         memcpy(message->username, username, strlen(username));
         printf("OPERATION %s FROM %s\n", receive_char, username);
-        printf("LIST_CONTENT\n");
+        op = receive_characters(socket, username);
+        if (op == -1) {
+            return -1;
+        }
+        memcpy(message->username2, username, strlen(username));
+        return 0;
     }
-    else {
-        return -1;
-    }
-
-    return 0;
+    return -1;
 }
 
 
@@ -284,20 +284,20 @@ int send_package(int socket, void *message, int size) {
  */
 int send_message(int socket, request *answer) {
 
-    if (answer->operation <=5 ) {
-        __uint8_t *ans = (__uint8_t *) &answer->answer;
+    __uint8_t *ans = (__uint8_t *) &answer->answer;
 
-        int sent = 0;
-        if (isBigEndian() == 0) { //little endian
-            sent = send_package(socket, &ans[0], 1);
-        }
-        else {
-            sent = send_package(socket, &ans[3], 1);
-        }
-        if (sent<0) {
-           perror("Error writing to socket");
-            return -1;
-        }
+    int sent = 0;
+    if (isBigEndian() == 0) { //little endian
+        printf("%u\n", ans[0]);
+        sent = send_package(socket, &ans[0], 1);
+    }
+    else {
+        printf("%u\n", ans[3]);
+        sent = send_package(socket, &ans[3], 1);
+    }
+    if (sent<0) {
+       perror("Error writing to socket");
+        return -1;
     }
     return 0;
 }
