@@ -82,12 +82,34 @@ int delete_generic(char *query) {
     return 0;
 }
 
+//Intento de extraer metodo de apertura pero no funciona. todo BORRAR DESPUES
+void open_with_pragma(sqlite3* database) {
+    char *user = getlogin(); //PARA LA BASE DE DATOS
+    char db_name[256];
+    snprintf(db_name, sizeof(db_name), "database-%s.db", user);
+    int create_database = sqlite3_open(db_name, &database);
+    if (create_database != SQLITE_OK)
+    {
+        fprintf(stderr, "Error opening the database\n");
+        exit(-1);
+    }
+    char *message_error = NULL;
+    //Habilitar las foreign keys para mejor manejo de la base de datos
+    if (sqlite3_exec(database, "PRAGMA foreign_keys = ON;", NULL, NULL, &message_error) != SQLITE_OK)
+    {
+        fprintf(stderr, "Error with the fk definition %s", message_error);
+        sqlite3_close(database);
+        exit(-1);
+    }
+}
+
 
 /**
  * @brief
  */
 int register_user(char *username)
 {
+
     sqlite3* database;
     char *user = getlogin(); //PARA LA BASE DE DATOS
     char db_name[256];
@@ -318,10 +340,11 @@ int publish(char *user, char *path, char *description)
     if (exist("users_connected", user, "username") < 0) {
         return 2;
     }
-    char insert[2048];
+    char *insert = malloc(1024);
     sprintf(insert,
             "INSERT into publications(path, username, description) "
             " VALUES('%s','%s','%s');", path,user, description);
+    printf("query %s\n", insert);
     int test;
     pthread_mutex_lock(&ddbb_mutex);
     if ((test = sqlite3_exec(database, insert, NULL, NULL, &message_error)) != SQLITE_OK)
@@ -338,6 +361,7 @@ int publish(char *user, char *path, char *description)
         pthread_mutex_unlock(&ddbb_mutex);
         return 3;
     }
+    free(insert);
     pthread_mutex_unlock(&ddbb_mutex);
     sqlite3_close(database);
     return 0;
@@ -432,10 +456,53 @@ int list_users(char *username, char users[2048][256], char ips[2048][256], int p
 /**
  * @brief
  */
-int list_content(char *user)
+int list_content(char *user, char *user_content,char users[2048][256], int *len)
 {
+    sqlite3* database;
+    char *user_ddbb = getlogin(); //PARA LA BASE DE DATOS
+    char db_name[256];
+    snprintf(db_name, sizeof(db_name), "database-%s.db", user_ddbb);
+    int create_database = sqlite3_open(db_name, &database);
+    if (create_database != SQLITE_OK)
+    {
+        fprintf(stderr, "Error opening the database\n");
+        return 4;
+    }
 
+    //Se parará la query si el cliente no está registrado o conectado
+    if (exist("clients" ,user, "username") < 0) {
+        return 1; //No existe el user solicitante
+    }
+    if (exist("users_connected", user, "username")< 0) {
+        return 2; //No conectado el user solicitante
+    }
+    printf("username2 %s\n", user_content);
 
+    if (exist("clients" ,user_content, "username") < 0) {
+        return 3; //No existe el user a buscar
+    }
 
+    char query[256];
+    sprintf(query, "SELECT path FROM publications WHERE username == '%s';", user_content);
+    request_query_clients receive = {0};
+    receive.content = 1;
+    pthread_mutex_lock(&ddbb_mutex);
+    if (sqlite3_exec(database, query, recall_row_users_query, &receive, NULL) != SQLITE_OK)
+    {
+        fprintf(stderr, "ERROR executing query\n");
+        sqlite3_close(database);
+        pthread_mutex_unlock(&ddbb_mutex);
+        return 4;
+    }
+    pthread_mutex_unlock(&ddbb_mutex);
+    if (receive.empty == 0)
+    {
+        return 0;  //Si no hay elementos no es fallo
+    }
+    for (int i = 0; i < receive.number; i++) {
+        memcpy(users[i], receive.users[i], strlen(receive.users[i]));
+        printf("path %d es %s\n", i, users[i]);
+    }
+    *len = receive.number;
     return 0;
 }

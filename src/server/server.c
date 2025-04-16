@@ -135,7 +135,15 @@ void *process_request(parameters_to_pass *socket) {
             end_thread(socket_id);
             return NULL;
         case 7: //LIST_CONTENT
-
+            //De momento usaremos el array users de esta estructura
+            request_query_clients query_content = {0};
+            query_content.answer = list_content(local_request.username,local_request.username2,
+                                                query_content.users, &query_content.number);
+            //Para que answer back query solo envie un campo
+            query_content.content = 1;
+            answer_back_query(sc[socket_id], &query_content);
+            end_thread(socket_id);
+            return NULL;
         default:
             break;
     }

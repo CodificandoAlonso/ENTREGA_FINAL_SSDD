@@ -25,6 +25,7 @@ typedef struct request_query_clients {
     char users[2048][256];
     char ips[2048][256];
     int ports[2048];
+    int content;
     int number;
     int empty;
     int answer;

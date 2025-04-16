@@ -190,6 +190,7 @@ int receive_message(int socket, request *message) {
         if (op == -1) {
             return -1;
         }
+        printf("Descripcion recibida = [%s]\n", description);
         memcpy(message->description, description, strlen(description));
         return 0;
     }
@@ -228,11 +229,13 @@ int receive_message(int socket, request *message) {
             return -1;
         }
         memcpy(message->username, username, strlen(username));
+        printf("username %s\n", username);
         printf("OPERATION %s FROM %s\n", receive_char, username);
         op = receive_characters(socket, username);
         if (op == -1) {
             return -1;
         }
+        printf("username2 %s\n", username);
         memcpy(message->username2, username, strlen(username));
         return 0;
     }
@@ -338,17 +341,19 @@ int send_message_query(int socket, request_query_clients *answer) {
                     perror("Error writing to socket");
                     return -1;
                 }
-                sent = send_package(socket, &answer->ips[i], strlen(answer->ips[i]) +1);
-                if (sent<0) {
-                    perror("Error writing to socket");
-                    return -1;
-                }
-                char cadena[256];
-                sprintf(cadena, "%d", answer->ports[i]);
-                sent = send_package(socket, cadena, strlen(cadena) + 1);
-                if (sent<0) {
-                    perror("Error writing to socket");
-                    return -1;
+                if (answer->content == 0) {
+                    sent = send_package(socket, &answer->ips[i], strlen(answer->ips[i]) +1);
+                    if (sent<0) {
+                        perror("Error writing to socket");
+                        return -1;
+                    }
+                    char cadena[256];
+                    sprintf(cadena, "%d", answer->ports[i]);
+                    sent = send_package(socket, cadena, strlen(cadena) + 1);
+                    if (sent<0) {
+                        perror("Error writing to socket");
+                        return -1;
+                    }
                 }
             }
         }

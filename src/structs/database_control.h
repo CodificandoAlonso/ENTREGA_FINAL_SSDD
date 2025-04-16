@@ -45,6 +45,6 @@ int list_users(char *username, char users[2048][256], char ips[2048][256], int p
 /**
  * @brief
  */
-int list_content(char *user);
+int list_content(char *user, char *user_content, char users[2048][256], int *len);
 
 #endif //CONTROL_DDBB_H
