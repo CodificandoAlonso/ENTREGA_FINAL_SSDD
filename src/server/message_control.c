@@ -111,6 +111,8 @@ int receive_message(int socket, request *message) {
     /* Primero se recibe una cadena con la operación a realizar. Esta puede ser:
      * Register Unregister Connect Disconnect Publish Delete List_Users List_Content
      */
+    memset(message, 0, sizeof(*message));  // ← limpia toda la estructura
+
     char receive_char[256];
     int op = receive_characters(socket, receive_char);
     if (op == -1) {
@@ -125,7 +127,7 @@ int receive_message(int socket, request *message) {
         if (op == -1) {
             return -1;
         }
-        memcpy(message->username, username, strlen(username));
+        SAFE_CPY(message->username, username);
         printf("OPERATION %s FROM %s\n", receive_char, username);
         return 0;
     }
@@ -136,7 +138,7 @@ int receive_message(int socket, request *message) {
         if (op == -1) {
             return -1;
         }
-        memcpy(message->username, username, strlen(username));
+        SAFE_CPY(message->username, username);
         printf("OPERATION %s FROM %s\n", receive_char, username);
         return 0;
     }
@@ -147,7 +149,7 @@ int receive_message(int socket, request *message) {
         if (op == -1) {
             return -1;
         }
-        memcpy(message->username, username, strlen(username));
+        SAFE_CPY(message->username, username);
         printf("OPERATION %s FROM %s\n", receive_char, username);
         op = receive_characters(socket, receive_char);
         if (op == -1) {
@@ -165,7 +167,7 @@ int receive_message(int socket, request *message) {
         if (op == -1) {
             return -1;
         }
-        memcpy(message->username, username, strlen(username));
+        SAFE_CPY(message->username, username);
         printf("OPERATION %s FROM %s\n", receive_char, username);
         printf("DISCONNECT\n");
         return 0;
@@ -177,21 +179,21 @@ int receive_message(int socket, request *message) {
         if (op == -1) {
             return -1;
         }
-        memcpy(message->username, username, strlen(username));
+        SAFE_CPY(message->username, username);
         printf("OPERATION %s FROM %s\n", receive_char, username);
         char path[256];
         op = receive_characters(socket, path);
         if (op == -1) {
             return -1;
         }
-        memcpy(message->path, path, strlen(path));
+        SAFE_CPY(message->path, path);
         char description[256];
         op = receive_characters(socket, description);
         if (op == -1) {
             return -1;
         }
         printf("Descripcion recibida = [%s]\n", description);
-        memcpy(message->description, description, strlen(description));
+        SAFE_CPY(message->description, description);
         return 0;
     }
     if (strcmp(receive_char, "DELETE") == 0) {
@@ -201,13 +203,13 @@ int receive_message(int socket, request *message) {
         if (op == -1) {
             return -1;
         }
-        memcpy(message->username, username, strlen(username));
+        SAFE_CPY(message->username, username);
         printf("OPERATION %s FROM %s\n", receive_char, username);
         op = receive_characters(socket, username);
         if (op == -1) {
             return -1;
         }
-        memcpy(message->path, username, strlen(username));
+        SAFE_CPY(message->path, username);
         return 0;
     }
     if (strcmp(receive_char, "LIST_USERS") == 0) {
@@ -217,7 +219,7 @@ int receive_message(int socket, request *message) {
         if (op == -1) {
             return -1;
         }
-        memcpy(message->username, username, strlen(username));
+        SAFE_CPY(message->username, username);
         printf("OPERATION %s FROM %s\n", receive_char, username);
         return 0;
     }
@@ -228,7 +230,7 @@ int receive_message(int socket, request *message) {
         if (op == -1) {
             return -1;
         }
-        memcpy(message->username, username, strlen(username));
+        SAFE_CPY(message->username, username);
         printf("username %s\n", username);
         printf("OPERATION %s FROM %s\n", receive_char, username);
         op = receive_characters(socket, username);
@@ -236,7 +238,7 @@ int receive_message(int socket, request *message) {
             return -1;
         }
         printf("username2 %s\n", username);
-        memcpy(message->username2, username, strlen(username));
+        SAFE_CPY(message->username2, username);
         return 0;
     }
     return -1;
