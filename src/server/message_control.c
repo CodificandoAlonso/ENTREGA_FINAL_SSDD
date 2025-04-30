@@ -328,13 +328,19 @@ int send_message_query(int socket, request_query_clients *answer) {
             return -1;
         }
 
+
         if (answer->answer == 0) {
-            char ans2[2] = {answer->number + '0', '\0'};
-            sent = send_package(socket, &ans2, 2);
+            //char ans2[2] = {answer->number + '0', '\0'};
+            int len = snprintf(NULL, 0, "%d", answer->number);
+            char *ans2 = malloc(len +1);
+            snprintf(ans2, len + 1,"%d", answer->number);
+            printf("%s\n", ans2);
+            sent = send_package(socket, ans2, len + 1);
             if (sent<0) {
                 perror("Error writing to socket");
                 return -1;
             }
+            free(ans2);
             for (int i = 0; i < answer->number; i++) {
                 sent = send_package(socket, &answer->users[i], strlen(answer->users[i]) + 1);
                 if (sent<0) {
