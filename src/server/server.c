@@ -229,11 +229,11 @@ void safe_close(int ctrlc) {
 
 
 int main(int argc, char **argv) {
-    if (argc < 2) {
+    if (argc < 3) {
         perror("Server port not indicated\n");
         exit(-2);
     }
-    int port_num = atoi(argv[1]);
+    int port_num = atoi(argv[2]);
     if (port_num <= 0 || port_num > 65535) {
         perror("Bad port\n");
         return -1;
@@ -312,11 +312,10 @@ int main(int argc, char **argv) {
     }
 
     struct in_addr **addr_list = (struct in_addr **)he->h_addr_list;
-    char *local_ip = inet_ntoa(*addr_list[0]); // Convierte a cadena legible
+    char *local_ip = inet_ntoa(*addr_list[0]);
 
 
     printf("Init Server <%s>:<%d>\n",local_ip, port_num );
-    //inicializacion de la estructura para pasar parametros al hilo.
     parameters_to_pass params = {0};
     while (1) {
         sem_wait(&available_threads); // Esperar hasta que haya hilos libres
