@@ -6,6 +6,11 @@
 #define SOCKET_MESSAGE_H
 #include "struct.h"
 
+#define SAFE_CPY(dst, src) do { \
+strncpy((dst), (src), sizeof(dst) - 1); \
+(dst)[sizeof(dst) - 1] = '\0'; \
+} while (0)
+
 
 
 
