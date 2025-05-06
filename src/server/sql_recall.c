@@ -15,7 +15,8 @@
  * automáticamente tanto value_1, como value_3
  */
 int recall_row_users(void *data, int num_columns, char **column_values, char **column_names) {
-
+    (void)num_columns;
+    (void)column_names;
     receive_sql *sql = data;
     memcpy(sql->user,column_values[0], strlen(column_values[0]));
     sql->empty = 1;
@@ -34,6 +35,8 @@ int recall_row_users(void *data, int num_columns, char **column_values, char **c
  * los valores en un array temporal.
  */
 int recall_row_users_query(void *data, int num_columns, char **column_values, char **column_names) {
+    (void)num_columns;
+    (void)column_names;
     request_query_clients *sql = data;
     if (sql->content == 0)
     {

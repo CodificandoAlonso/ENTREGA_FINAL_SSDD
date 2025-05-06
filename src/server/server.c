@@ -220,7 +220,7 @@ int create_table(sqlite3 *db) {
 /**
  *@brief Función implementada para hacer un cierre seguro del servidor cuando se pulsa CRTL + C
  */
-void safe_close(int ctrlc) {
+void safe_close() {
     printf("\n-----------------------------------------------\n");
     printf("\nEXIT SIGNAL RECEIVED. CLOSING ALL AND GOODBYE\n");
     printf("-----------------------------------------------\n");

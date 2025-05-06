@@ -1,5 +1,5 @@
 compiler = gcc
-CFLAGS  = -Wall -fPIC -lsqlite3 $(INCLUDES)
+CFLAGS  = -Wall -Wextra -fPIC -lsqlite3 $(INCLUDES)
 INCLUDES = -I src/headers
 
 
