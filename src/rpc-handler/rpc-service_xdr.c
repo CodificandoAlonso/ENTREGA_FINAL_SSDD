@@ -3,7 +3,7 @@
  * It was generated using rpcgen.
  */
 
-#include "server-rpc-builder.h"
+#include "serverRpcBuilder.h"
 
 bool_t
 xdr_entry (XDR *xdrs, entry *objp)

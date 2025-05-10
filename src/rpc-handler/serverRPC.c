@@ -1,6 +1,6 @@
 
 #include <rpc/rpc.h>
-#include "server-rpc-builder.h"
+#include "serverRpcBuilder.h"
 #include <time.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,8 +12,13 @@ bool_t
 print_datetime_1_svc(entry *argp, int  *resultp, struct svc_req *rqstp)
 {
     (void)rqstp;
-    if (strcmp(argp->operation, "PUBLISH")){
-          printf("%s\t %s %s\t %s",argp->username, argp->operation, argp->filename, argp->datetime);
+    if (strcmp(argp->operation, "PUBLISH") == 0)
+    {
+          printf("%s    %s %s    %s\n",argp->username, argp->operation, argp->filename, argp->datetime);
+    }
+    else
+    {
+        printf("%s    %s    %s\n",argp->username, argp->operation, argp->datetime);
     }
     *resultp = 0;
     return TRUE;

@@ -16,6 +16,8 @@
 #include <unistd.h>
 #include "message_control.h"
 #include "database_control.h"
+#include "serverRpcBuilder.h"
+#include <rpc/rpc.h>
 #define MAX_THREADS 25
 
 //Inicializador global de los fd para la bbdd y la queue del servidor
@@ -49,7 +51,7 @@ void pad_array() {
 char *get_db_username() {
     struct passwd *pw = getpwuid(getuid());
     if (pw) return pw->pw_name;
-    return "default";  // fallback si no encuentra usuario
+    return "default"; // fallback si no encuentra usuario
 }
 
 
@@ -67,6 +69,32 @@ int answer_back(int socket, request *params) {
  */
 int answer_back_query(int socket, request_query_clients *params) {
     return send_message_query(socket, params);
+}
+
+
+void handler_rpc_req(char *username, char *operation, char *filename, char *datetime) {
+    static CLIENT *clnt = NULL;
+    const char *srv = getenv("LOG_RPC_IP");
+    if (!srv) {
+        fprintf(stderr, "Error: definir LOG_RPC_IP\n");
+        exit(1);
+    }
+
+    clnt = clnt_create(srv, RPC_SERVICE_DATETIME, RPC_SERVICE, "tcp");
+    if (!clnt) {
+        clnt_pcreateerror(srv);
+        exit(1);
+    }
+    entry entr = {0};
+    entr.username = username;
+    entr.operation = operation;
+    entr.filename = filename;
+    entr.datetime = datetime;
+    int answer = 0;
+    bool_t execution = print_datetime_1(&entr,&answer,clnt);
+    if (execution != 0) {
+        exit(-1);
+    }
 }
 
 
@@ -104,37 +132,44 @@ void *process_request(parameters_to_pass *socket) {
     }
     switch (local_request.operation) {
         case 0: //REGISTER
+            handler_rpc_req(local_request.username, "REGISTER", "", local_request.datetime);
             local_request.answer = register_user(local_request.username);
             if (local_request.answer != 0) {
                 printf("Error inserting user:%s\n", local_request.username);
             }
-        break;
+            break;
         case 1: //UNREGISTER
+            handler_rpc_req(local_request.username, "UNREGISTER", "", local_request.datetime);
             local_request.answer = unregister_user(local_request.username);
             if (local_request.answer != 0) {
-            printf("Error removing user:%s\n", local_request.username);
+                printf("Error removing user:%s\n", local_request.username);
             }
-        break;
+            break;
         case 2: //CONNECT
+            handler_rpc_req(local_request.username, "CONNECT", "", local_request.datetime);
             local_request.answer = connect_client(local_request.username, local_request.port, ip_addr);
-        if (local_request.answer != 0) {
-            printf("Error connecting user:%s\n", local_request.username);
-        }
-        break;
+            if (local_request.answer != 0) {
+                printf("Error connecting user:%s\n", local_request.username);
+            }
+            break;
         case 3: //DISCONNECT
+            handler_rpc_req(local_request.username, "DISCONNECT",  "", local_request.datetime);
             local_request.answer = disconnect(local_request.username);
-        if (local_request.answer != 0) {
-            printf("Error disconnecting user:%s\n", local_request.username);
-        }
-        break;
+            if (local_request.answer != 0) {
+                printf("Error disconnecting user:%s\n", local_request.username);
+            }
+            break;
         case 4: //PUBLISH
-             local_request.answer = publish(local_request.username, local_request.path,
-                                            local_request.description);
-        break;
+            handler_rpc_req(local_request.username, "PUBLISH", local_request.path, local_request.datetime);
+            local_request.answer = publish(local_request.username, local_request.path,
+                                           local_request.description);
+            break;
         case 5: //DELETE
-             local_request.answer = delete(local_request.path, local_request.username);
-        break;
+            handler_rpc_req(local_request.username, "DELETE", "", local_request.datetime);
+            local_request.answer = delete(local_request.path, local_request.username);
+            break;
         case 6: //LIST_USERS
+            handler_rpc_req(local_request.username, "LIST_USERS", "", local_request.datetime);
             request_query_clients local_query = {0};
             local_query.answer = list_users(local_request.username, local_query.users, local_query.ips,
                                             local_query.ports, &local_query.number);
@@ -142,9 +177,9 @@ void *process_request(parameters_to_pass *socket) {
             end_thread(socket_id);
             return NULL;
         case 7: //LIST_CONTENT
-            //De momento usaremos el array users de esta estructura
+            handler_rpc_req(local_request.username, "LIST_CONTENT", "", local_request.datetime);
             request_query_clients query_content = {0};
-            query_content.answer = list_content(local_request.username,local_request.username2,
+            query_content.answer = list_content(local_request.username, local_request.username2,
                                                 query_content.users, &query_content.number);
             //Para que answer back query solo envie un campo
             query_content.content = 1;
@@ -289,7 +324,6 @@ int main(int argc, char **argv) {
     bzero((char *) &server_addr, sizeof(server_addr));
 
 
-
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
     server_addr.sin_port = htons((uint16_t) port_num);
@@ -318,15 +352,14 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
-    struct in_addr **addr_list = (struct in_addr **)he->h_addr_list;
+    struct in_addr **addr_list = (struct in_addr **) he->h_addr_list;
     char *local_ip = inet_ntoa(*addr_list[0]);
 
 
-    printf("Init Server <%s>:<%d>\n",local_ip, port_num );
+    printf("Init Server <%s>:<%d>\n", local_ip, port_num);
 
 
     //Vinculacion con servidor RPC
-
 
 
     parameters_to_pass params = {0};

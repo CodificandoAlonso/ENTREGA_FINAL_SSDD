@@ -153,8 +153,6 @@ int receive_message(int socket, request *message) {
     }
     if (strcmp(receive_char, "DISCONNECT") == 0) {
         message->operation = 3; //DISCONNECT SERA 3
-
-        printf("DISCONNECT\n");
         return 0;
     }
     if (strcmp(receive_char, "PUBLISH") == 0) {
@@ -192,7 +190,6 @@ int receive_message(int socket, request *message) {
         if (op == -1) {
             return -1;
         }
-        printf("username2 %s\n", username);
         SAFE_CPY(message->username2, username);
         return 0;
     }
@@ -249,11 +246,9 @@ int send_message(int socket, request *answer) {
 
     int sent = 0;
     if (isBigEndian() == 0) { //little endian
-        printf("%u\n", ans[0]);
         sent = send_package(socket, &ans[0], 1);
     }
     else {
-        printf("%u\n", ans[3]);
         sent = send_package(socket, &ans[3], 1);
     }
     if (sent<0) {
@@ -291,7 +286,6 @@ int send_message_query(int socket, request_query_clients *answer) {
             int len = snprintf(NULL, 0, "%d", answer->number);
             char *ans2 = malloc(len +1);
             snprintf(ans2, len + 1,"%d", answer->number);
-            printf("%s\n", ans2);
             sent = send_package(socket, ans2, len + 1);
             if (sent<0) {
                 perror("Error writing to socket");
