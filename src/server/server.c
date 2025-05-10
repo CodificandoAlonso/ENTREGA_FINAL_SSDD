@@ -12,6 +12,7 @@
 #include <arpa/inet.h>
 #include <semaphore.h>
 #include <netdb.h>
+#include <pwd.h>
 #include <unistd.h>
 #include "message_control.h"
 #include "database_control.h"
@@ -44,6 +45,12 @@ void pad_array() {
     }
 }
 
+
+char *get_db_username() {
+    struct passwd *pw = getpwuid(getuid());
+    if (pw) return pw->pw_name;
+    return "default";  // fallback si no encuentra usuario
+}
 
 
 /**
@@ -243,9 +250,9 @@ int main(int argc, char **argv) {
 
     //Creando e inicializando la base de datos
     sqlite3_config(SQLITE_CONFIG_SERIALIZED);
-    char *user = getlogin(); //PARA LA BASE DE DATOS
     char db_name[256];
-    snprintf(db_name, sizeof(db_name), "database-%s.db", user);
+    char *user = get_db_username();
+    snprintf(db_name, sizeof(db_name), "/tmp/database-%s.db", user);
     int create_database = sqlite3_open(db_name, &database_server);
     if (create_database != SQLITE_OK) {
         fprintf(stderr, "Error opening the database\n");
@@ -316,6 +323,12 @@ int main(int argc, char **argv) {
 
 
     printf("Init Server <%s>:<%d>\n",local_ip, port_num );
+
+
+    //Vinculacion con servidor RPC
+
+
+
     parameters_to_pass params = {0};
     while (1) {
         sem_wait(&available_threads); // Esperar hasta que haya hilos libres

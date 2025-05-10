@@ -17,6 +17,7 @@ typedef struct request {
     char description[256];
     char username2[256];
     int answer;
+    char datetime[256];
 }request;
 
 
