@@ -83,6 +83,12 @@ int delete_generic(char *query) {
         pthread_mutex_unlock(&ddbb_mutex);
         return -1;
     }
+    if (sqlite3_changes(database) == 0)
+    {
+        pthread_mutex_unlock(&ddbb_mutex);
+        sqlite3_close(database);
+        return -1;
+    }
     pthread_mutex_unlock(&ddbb_mutex);
     sqlite3_close(database);
     return 0;
@@ -334,7 +340,7 @@ int delete(char *path, char *username) {
         return 3; //no publicado el contenido
     }
     char query[512];
-    sprintf(query, "Delete from publications WHERE path =='%s';", path);
+    sprintf(query, "Delete from publications WHERE path = '%s' AND username = '%s';", path, username);
     if (delete_generic(query) < 0) {
         return 4; //error generico
     }
