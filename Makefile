@@ -7,8 +7,8 @@ TIRPC_LIBS   := $(shell pkg-config --libs   libtirpc)
 # --- Herramientas y flags de compilación ---
 compiler := gcc
 INCLUDES := -I src/headers
-CFLAGS   := -Wall -Wextra -fPIC $(INCLUDES) $(TIRPC_CFLAGS)
-LDFLAGS  := -lsqlite3 $(TIRPC_LIBS)
+CFLAGS   := -Wall -Wextra	 -pthread -fPIC $(INCLUDES) $(TIRPC_CFLAGS)
+LDFLAGS  := -pthread -ltirpc -lsqlite3 $(TIRPC_LIBS)
 
 # --- Servidor "clásico" ---
 SERVER_SRCS := \

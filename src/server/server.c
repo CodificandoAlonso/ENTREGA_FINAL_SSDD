@@ -47,7 +47,9 @@ void pad_array() {
     }
 }
 
-
+/**
+ *@brief Funcion encargada de busar el hostname que realiza la ejecución del codigo. Necesario para la ddbb
+ */
 char *get_db_username() {
     struct passwd *pw = getpwuid(getuid());
     if (pw) return pw->pw_name;
@@ -72,18 +74,18 @@ int answer_back_query(int socket, request_query_clients *params) {
 }
 
 
-void handler_rpc_req(char *username, char *operation, char *filename, char *datetime) {
-    static CLIENT *clnt = NULL;
+int handler_rpc_req(char *username, char *operation, char *filename, char *datetime) {
+    CLIENT *clnt = NULL;
     const char *srv = getenv("LOG_RPC_IP");
     if (!srv) {
         fprintf(stderr, "Error: definir LOG_RPC_IP\n");
-        exit(1);
+        return -1;
     }
 
     clnt = clnt_create(srv, RPC_SERVICE_DATETIME, RPC_SERVICE, "tcp");
     if (!clnt) {
         clnt_pcreateerror(srv);
-        exit(1);
+        return -1;
     }
     entry entr = {0};
     entr.username = username;
@@ -91,10 +93,14 @@ void handler_rpc_req(char *username, char *operation, char *filename, char *date
     entr.filename = filename;
     entr.datetime = datetime;
     int answer = 0;
-    bool_t execution = print_datetime_1(&entr,&answer,clnt);
+    bool_t execution = print_datetime_1(&entr, &answer, clnt);
     if (execution != 0) {
-        exit(-1);
+        clnt_destroy(clnt); //Si falla se destruye tmb
+        return -1;
     }
+    clnt_destroy(clnt); //Importante para la escalabilidad, si no se destruye se va escalando la memoria usada por el
+    //proceso, generando el bloqueo o estado en suspension o colapso del mismo
+    return 0;
 }
 
 
@@ -128,48 +134,69 @@ void *process_request(parameters_to_pass *socket) {
     int message = receive_message(sc[socket_id], &local_request);
     if (message < 0) {
         end_thread(socket_id);
-        pthread_exit(0);
+        return NULL;
     }
     switch (local_request.operation) {
         case 0: //REGISTER
-            handler_rpc_req(local_request.username, "REGISTER", "", local_request.datetime);
+            if (handler_rpc_req(local_request.username, "REGISTER", "", local_request.datetime) < 0) {
+                end_thread(socket_id);
+                return NULL;
+            }
             local_request.answer = register_user(local_request.username);
             if (local_request.answer != 0) {
                 printf("Error inserting user:%s\n", local_request.username);
             }
             break;
         case 1: //UNREGISTER
-            handler_rpc_req(local_request.username, "UNREGISTER", "", local_request.datetime);
+            if (handler_rpc_req(local_request.username, "UNREGISTER", "", local_request.datetime) < 0) {
+                end_thread(socket_id);
+                return NULL;
+            }
             local_request.answer = unregister_user(local_request.username);
             if (local_request.answer != 0) {
                 printf("Error removing user:%s\n", local_request.username);
             }
             break;
         case 2: //CONNECT
-            handler_rpc_req(local_request.username, "CONNECT", "", local_request.datetime);
+            if (handler_rpc_req(local_request.username, "CONNECT", "", local_request.datetime) < 0) {
+                end_thread(socket_id);
+                return NULL;
+            }
             local_request.answer = connect_client(local_request.username, local_request.port, ip_addr);
             if (local_request.answer != 0) {
                 printf("Error connecting user:%s\n", local_request.username);
             }
             break;
         case 3: //DISCONNECT
-            handler_rpc_req(local_request.username, "DISCONNECT",  "", local_request.datetime);
+            if (handler_rpc_req(local_request.username, "DISCONNECT", "", local_request.datetime) < 0) {
+                end_thread(socket_id);
+                return NULL;
+            }
             local_request.answer = disconnect(local_request.username);
             if (local_request.answer != 0) {
                 printf("Error disconnecting user:%s\n", local_request.username);
             }
             break;
         case 4: //PUBLISH
-            handler_rpc_req(local_request.username, "PUBLISH", local_request.path, local_request.datetime);
+            if (handler_rpc_req(local_request.username, "PUBLISH", local_request.path, local_request.datetime) < 0) {
+                end_thread(socket_id);
+                return NULL;
+            }
             local_request.answer = publish(local_request.username, local_request.path,
                                            local_request.description);
             break;
         case 5: //DELETE
-            handler_rpc_req(local_request.username, "DELETE", "", local_request.datetime);
+            if (handler_rpc_req(local_request.username, "DELETE", "", local_request.datetime) < 0) {
+                end_thread(socket_id);
+                return NULL;
+            }
             local_request.answer = delete(local_request.path, local_request.username);
             break;
         case 6: //LIST_USERS
-            handler_rpc_req(local_request.username, "LIST_USERS", "", local_request.datetime);
+            if (handler_rpc_req(local_request.username, "LIST_USERS", "", local_request.datetime) < 0) {
+                end_thread(socket_id);
+                return NULL;
+            }
             request_query_clients local_query = {0};
             local_query.answer = list_users(local_request.username, local_query.users, local_query.ips,
                                             local_query.ports, &local_query.number);
@@ -177,11 +204,14 @@ void *process_request(parameters_to_pass *socket) {
             end_thread(socket_id);
             return NULL;
         case 7: //LIST_CONTENT
-            handler_rpc_req(local_request.username, "LIST_CONTENT", "", local_request.datetime);
+            if (handler_rpc_req(local_request.username, "LIST_CONTENT", "", local_request.datetime) < 0) {
+                end_thread(socket_id);
+                return NULL;
+            }
             request_query_clients query_content = {0};
             query_content.answer = list_content(local_request.username, local_request.username2,
                                                 query_content.users, &query_content.number);
-            //Para que answer back query solo envie un campo
+        //Para que answer back query solo envie un campo
             query_content.content = 1;
             answer_back_query(sc[socket_id], &query_content);
             end_thread(socket_id);
@@ -364,9 +394,9 @@ int main(int argc, char **argv) {
 
     parameters_to_pass params = {0};
     while (1) {
-        sem_wait(&available_threads); // Esperar hasta que haya hilos libres
         //Se realiza el accept en in sc temporal
         int sc_temp = accept(sd, (struct sockaddr *) &client_addr, &size);
+        sem_wait(&available_threads); // Esperar hasta que haya hilos libres
         if (sc_temp < 0) {
             sem_post(&available_threads);
             continue;
@@ -383,7 +413,7 @@ int main(int argc, char **argv) {
                 //Se copia el fd del sc_temp al indice correspondiente
                 sc[i] = sc_temp;
                 params.identifier = i;
-                strcpy(params.client_ip, client_ip); //Ip copiada
+                strcpy(params.client_ip, client_ip);
                 pthread_mutex_unlock(&mutex_workload);
                 if (pthread_create(&thread_pool[i], NULL, (void *) process_request, &params) == 0) {
                     pthread_mutex_lock(&mutex_copy_params);

@@ -243,12 +243,12 @@ int send_package(int socket, void *message, int size) {
 int send_message(int socket, request *answer) {
 
     __uint8_t *ans = (__uint8_t *) &answer->answer;
-
+    //Segun si la maquina es little o big endian, enviar el byte contenedor de la información
     int sent = 0;
     if (isBigEndian() == 0) { //little endian
         sent = send_package(socket, &ans[0], 1);
     }
-    else {
+    else {   //Big endian
         sent = send_package(socket, &ans[3], 1);
     }
     if (sent<0) {
@@ -268,6 +268,8 @@ int send_message(int socket, request *answer) {
  */
 int send_message_query(int socket, request_query_clients *answer) {
 
+
+        //Segun si la maquina es little o big endian, enviar el byte contenedor de la información
         __uint8_t *ans = (__uint8_t *) &answer->answer;
         int sent = 0;
         if (isBigEndian() == 0) { //little endian
@@ -281,8 +283,8 @@ int send_message_query(int socket, request_query_clients *answer) {
             return -1;
         }
 
-
         if (answer->answer == 0) {
+            //Enviar el numero de filas del recall de la base de datos
             int len = snprintf(NULL, 0, "%d", answer->number);
             char *ans2 = malloc(len +1);
             snprintf(ans2, len + 1,"%d", answer->number);
@@ -292,6 +294,7 @@ int send_message_query(int socket, request_query_clients *answer) {
                 return -1;
             }
             free(ans2);
+            //enviar todas esas filas, tanto el user como su ip como su puerto
             for (int i = 0; i < answer->number; i++) {
                 sent = send_package(socket, &answer->users[i], strlen(answer->users[i]) + 1);
                 if (sent<0) {
