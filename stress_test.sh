@@ -50,30 +50,6 @@ python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567 &
 python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567 &
 python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567 &
 python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567 &
-python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567 &
-python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567 &
-python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567 &
-python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567 &
-python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567 &
-python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567 &
-python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567 &
-python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567 &
-python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567 &
-python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567 &
-python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567 &
-python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567 &
-python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567 &
-python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567 &
-python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567 &
-python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567 &
-python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567 &
-python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567 &
-python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567 &
-python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567 &
-python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567 &
-python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567 &
-python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567 &
-python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567 &
 python3 -u ./src/tests/register_user.py -s localhost -p 3333 -ws 4567
 
 
