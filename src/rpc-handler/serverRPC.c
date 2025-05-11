@@ -8,7 +8,7 @@
 #include <stdio.h>
 
 
-#define MAX_THREADS 25
+#define MAX_THREADS 50
 
 static pthread_t workers[MAX_THREADS];
 static struct task *queue[MAX_THREADS * 8];
