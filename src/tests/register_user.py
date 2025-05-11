@@ -22,7 +22,7 @@ class RegisterUserTestCase:
         sock.sendall(timestamp.encode() + b'\0')
         sock.sendall(user.encode() + b'\0')
         if op == "CONNECT":
-            port = random.randint(5555, 65535)
+            port = random.randint(1025, 65535)
             sock.sendall(str(port).encode() + b'\0')
 
     def register_and_connect_user(self):

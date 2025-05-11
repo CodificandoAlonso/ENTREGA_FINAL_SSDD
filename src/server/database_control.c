@@ -157,6 +157,9 @@ int unregister_user(char *username) {
     if (exist("clients", username, "username") < 0) {
         return 1; //No registrado
     }
+    if (exist("users_connected", username, "username") == 0) {
+        return 3; //No registrado
+    }
     char *message_error = NULL;
     //Habilitar las foreign keys para mejor manejo de la base de datos
     if (sqlite3_exec(database, "PRAGMA foreign_keys = ON;", NULL, NULL, &message_error) != SQLITE_OK) {

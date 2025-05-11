@@ -106,16 +106,15 @@ run_getfile_parallel() {
     # --- prepara scripts de entrada ---
     local fileA="temp/${num}_${name}_A.cmd"
     local fileB="temp/${num}_${name}_B.cmd"
-    printf '%s\n'  "$cmdA" > "$fileA"            # SIN QUIT → se queda conectado
+    printf '%s\n'  "$cmdA" > "$fileA"
     printf '%s\nQUIT\n' "$cmdB" > "$fileB"
 
-    # --- lanza cliente A (benito) de fondo ---
+
     $PY ../client/client.py -s "$SERVER" -p "$PORT" -ws "$WSPORT" \
         < "$fileA" > /dev/null 2>/dev/null & pidA=$!
 
-    sleep 0.3    # da tiempo a que A complete el CONNECT
+    sleep 0.3
 
-    # --- lanza cliente B y captura salida ---
     $PY ../client/client.py -s "$SERVER" -p "$PORT" -ws "$WSPORT" \
         < "$fileB" > "$out_file" 2>/dev/null
 
