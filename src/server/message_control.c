@@ -118,69 +118,45 @@ int receive_message(int socket, request *message) {
     if (op == -1) {
         return -1;
     }
+    char date[256];
+    op = receive_characters(socket, date);
+    if (op == -1) {
+        return -1;
+    }
+    SAFE_CPY(message->datetime, date);
+    char username[256];
+    op = receive_characters(socket, username);
+    if (op == -1) {
+        return -1;
+    }
+    SAFE_CPY(message->username, username);
+    printf("OPERATION %s FROM %s\n", receive_char, username);
 
     //IFS DE CASOS PARA LOS DIFERENTES METODOS DISPONIBLES, DE NO SER NINGUNO SE RETORNA -1
     if (strcmp(receive_char, "REGISTER") == 0) {
         message->operation = 0;  //REGISTER SERÁ 0
-        char username[256];
-        op = receive_characters(socket, username);
-        if (op == -1) {
-            return -1;
-        }
-        SAFE_CPY(message->username, username);
-        printf("OPERATION %s FROM %s\n", receive_char, username);
         return 0;
     }
     if (strcmp(receive_char, "UNREGISTER") == 0) {
         message->operation = 1;  //UNREGISTER SERÁ 1
-        char username[256];
-        op = receive_characters(socket, username);
-        if (op == -1) {
-            return -1;
-        }
-        SAFE_CPY(message->username, username);
-        printf("OPERATION %s FROM %s\n", receive_char, username);
         return 0;
     }
     if (strcmp(receive_char, "CONNECT") == 0) {
         message->operation = 2;  //CONNECT SERÁ 2
-        char username[256];
-        op = receive_characters(socket, username);
-        if (op == -1) {
-            return -1;
-        }
-        SAFE_CPY(message->username, username);
-        printf("OPERATION %s FROM %s\n", receive_char, username);
         op = receive_characters(socket, receive_char);
         if (op == -1) {
             return -1;
         }
         __uint32_t port = atoi(receive_char);
-        printf("el puerto es %d\n", port);
         message->port = port;
         return 0;
     }
     if (strcmp(receive_char, "DISCONNECT") == 0) {
         message->operation = 3; //DISCONNECT SERA 3
-        char username[256];
-        op = receive_characters(socket, username);
-        if (op == -1) {
-            return -1;
-        }
-        SAFE_CPY(message->username, username);
-        printf("OPERATION %s FROM %s\n", receive_char, username);
-        printf("DISCONNECT\n");
         return 0;
     }
     if (strcmp(receive_char, "PUBLISH") == 0) {
         message->operation = 4;  //PUBLISH SERÁ 4
-        char username[256];
-        op = receive_characters(socket, username);
-        if (op == -1) {
-            return -1;
-        }
-        SAFE_CPY(message->username, username);
-        printf("OPERATION %s FROM %s\n", receive_char, username);
         char path[256];
         op = receive_characters(socket, path);
         if (op == -1) {
@@ -192,19 +168,11 @@ int receive_message(int socket, request *message) {
         if (op == -1) {
             return -1;
         }
-        printf("Descripcion recibida = [%s]\n", description);
         SAFE_CPY(message->description, description);
         return 0;
     }
     if (strcmp(receive_char, "DELETE") == 0) {
         message->operation = 5;  //DELETE SERÁ 5
-        char username[256];
-        op = receive_characters(socket, username);
-        if (op == -1) {
-            return -1;
-        }
-        SAFE_CPY(message->username, username);
-        printf("OPERATION %s FROM %s\n", receive_char, username);
         op = receive_characters(socket, username);
         if (op == -1) {
             return -1;
@@ -214,35 +182,20 @@ int receive_message(int socket, request *message) {
     }
     if (strcmp(receive_char, "LIST_USERS") == 0) {
         message->operation = 6;  //LIST_USERS SERÁ 6
-        char username[256];
-        op = receive_characters(socket, username);
-        if (op == -1) {
-            return -1;
-        }
-        SAFE_CPY(message->username, username);
-        printf("OPERATION %s FROM %s\n", receive_char, username);
         return 0;
     }
     if (strcmp(receive_char, "LIST_CONTENT") == 0) {
         message->operation = 7;  //LIST_CONTENT SERÁ 7
-        char username[256];
         op = receive_characters(socket, username);
         if (op == -1) {
             return -1;
         }
-        SAFE_CPY(message->username, username);
-        printf("username %s\n", username);
-        printf("OPERATION %s FROM %s\n", receive_char, username);
-        op = receive_characters(socket, username);
-        if (op == -1) {
-            return -1;
-        }
-        printf("username2 %s\n", username);
         SAFE_CPY(message->username2, username);
         return 0;
     }
     return -1;
 }
+
 
 
 /**
@@ -290,14 +243,12 @@ int send_package(int socket, void *message, int size) {
 int send_message(int socket, request *answer) {
 
     __uint8_t *ans = (__uint8_t *) &answer->answer;
-
+    //Segun si la maquina es little o big endian, enviar el byte contenedor de la información
     int sent = 0;
     if (isBigEndian() == 0) { //little endian
-        printf("%u\n", ans[0]);
         sent = send_package(socket, &ans[0], 1);
     }
-    else {
-        printf("%u\n", ans[3]);
+    else {   //Big endian
         sent = send_package(socket, &ans[3], 1);
     }
     if (sent<0) {
@@ -317,6 +268,8 @@ int send_message(int socket, request *answer) {
  */
 int send_message_query(int socket, request_query_clients *answer) {
 
+
+        //Segun si la maquina es little o big endian, enviar el byte contenedor de la información
         __uint8_t *ans = (__uint8_t *) &answer->answer;
         int sent = 0;
         if (isBigEndian() == 0) { //little endian
@@ -330,19 +283,18 @@ int send_message_query(int socket, request_query_clients *answer) {
             return -1;
         }
 
-
         if (answer->answer == 0) {
-            //char ans2[2] = {answer->number + '0', '\0'};
+            //Enviar el numero de filas del recall de la base de datos
             int len = snprintf(NULL, 0, "%d", answer->number);
             char *ans2 = malloc(len +1);
             snprintf(ans2, len + 1,"%d", answer->number);
-            printf("%s\n", ans2);
             sent = send_package(socket, ans2, len + 1);
             if (sent<0) {
                 perror("Error writing to socket");
                 return -1;
             }
             free(ans2);
+            //enviar todas esas filas, tanto el user como su ip como su puerto
             for (int i = 0; i < answer->number; i++) {
                 sent = send_package(socket, &answer->users[i], strlen(answer->users[i]) + 1);
                 if (sent<0) {
