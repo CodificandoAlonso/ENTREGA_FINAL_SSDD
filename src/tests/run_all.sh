@@ -4,7 +4,7 @@
 # ------------------------------------------------------------
 RED="\033[31m"; GREEN="\033[32m"; BLUE="\033[34m"; RESET="\033[0m"
 
-SERVER="localhost"
+SERVER=10.118.25.240
 PORT=3333
 WSPORT=4567
 PY=python3          # cámbialo si usas otro intérprete
